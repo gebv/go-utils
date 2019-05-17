@@ -1,4 +1,4 @@
-package httpdebugserver
+package prometheusutils
 
 import (
 	"context"
@@ -16,8 +16,8 @@ func (l logFunc) Println(v ...interface{}) {
 	l(v...)
 }
 
-// RunDebugMux run debug server for prometheus.
-func RunDebugMux(ctx context.Context, path string, address string) {
+// RunPrometheusServer run debug server for prometheus.
+func RunPrometheusServer(ctx context.Context, path string, address string) {
 	l := zap.L().Named("debugMux")
 	sugar := l.Sugar()
 
