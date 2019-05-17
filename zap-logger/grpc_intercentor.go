@@ -56,9 +56,9 @@ func RecoverUnary() grpc.UnaryServerInterceptor {
 	}
 }
 
-func LoggerStream(lg LoggerFromContextGetter) grpc.StreamServerInterceptor {
+func LoggerStream() grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
-		ctxLogger := lg(ss.Context())
+		ctxLogger := Get(ss.Context())
 
 		defer func() {
 			if err != nil {
@@ -73,7 +73,7 @@ func LoggerStream(lg LoggerFromContextGetter) grpc.StreamServerInterceptor {
 	}
 }
 
-func RecoverStream(lg LoggerFromContextGetter) grpc.StreamServerInterceptor {
+func RecoverStream() grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 		ctx := ss.Context()
 		start := time.Now()
@@ -81,20 +81,20 @@ func RecoverStream(lg LoggerFromContextGetter) grpc.StreamServerInterceptor {
 			dur := zap.Duration("duration", time.Since(start))
 
 			if rec := recover(); rec != nil {
-				lg(ctx).DPanic("Unhandled panic.", zap.Any("panic", rec))
+				Get(ctx).DPanic("Unhandled panic.", zap.Any("panic", rec))
 				err = status.New(codes.Internal, "Internal server error.").Err()
 				return
 			}
 
 			if err == nil {
-				lg(ctx).Info("Done.", dur)
+				Get(ctx).Info("Done.", dur)
 				return
 			}
 
 			if _, ok := status.FromError(err); ok {
-				lg(ctx).Warn("Done with gRPC error.", dur, zap.Error(err))
+				Get(ctx).Warn("Done with gRPC error.", dur, zap.Error(err))
 			} else {
-				lg(ctx).Error("Done with unknown error.", dur, zap.Error(err))
+				Get(ctx).Error("Done with unknown error.", dur, zap.Error(err))
 			}
 		}()
 
@@ -102,5 +102,3 @@ func RecoverStream(lg LoggerFromContextGetter) grpc.StreamServerInterceptor {
 		return
 	}
 }
-
-type LoggerFromContextGetter func(ctx context.Context) *zap.Logger
